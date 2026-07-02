@@ -1,0 +1,31 @@
+# rules-stocktake
+
+> A Claude Code skill (MIT) that audits always-loaded behavioral rules (`~/.claude/rules/`) for quality. The sibling of skill-stocktake with the cost model inverted: a rule's cost is per-session residency, not trigger pollution. Mechanical integrity checks (broken See-skill pointers, extends links, origin headers, README tree drift) run as grep; a six-question binary screen plus refutation pressure-test feeds holistic Keep / Improve / Update / Merge / Demote-to-skill / Dissolve / Retire verdicts.
+
+## Core documentation
+
+- [llms-full.txt](llms-full.txt): self-contained Q&A reference for AI agents (Project Facts, question-form H2 sections)
+- [README.md](README.md): human-facing narrative (inverted cost model, modes, verdict criteria) — [README.ja.md](README.ja.md) is the Japanese version
+- [SKILL.md](skills/rules-stocktake/SKILL.md): full skill specification — modes, four-phase flow, six-question screen, mandatory-surface rule, ledger format
+
+## Architecture
+
+- 7 verdicts: **Keep** (earns residency), **Improve** (tighten — usually shorten), **Update** (outdated tech reference), **Merge into X** (overlap with another rule), **Demote to skill** (valuable but not worth per-session residency — the inverse of rules-distill), **Dissolve** (absorbed by the substrate or the conversation — retirement by success, recorded in an ADR), **Retire** (defect-based removal)
+- No usage axis: rules load unconditionally, so the audit replaces usage with two static signals — residency density (is each line worth reading every session?) and substrate absorption (does the harness already do this natively?)
+- Mandatory-surface rule: a No on the absorption question MUST surface the rule as a Dissolve candidate — an absorbed rule actively overrides evolving harness defaults, unlike an unused skill that sleeps harmlessly
+- Mechanical integrity checks always run over the full set, even in changed mode — retiring a skill silently breaks a `See skill:` pointer in an unmodified rule, invisible to mtimes
+- Lean verdict ledger: `results.json` (`{evaluated_at, total_lines, rules:{stem:{path,lines,verdict,reason,mtime}}}`), keys directory-qualified (`common/planning`)
+- 4 phases: Inventory + integrity checks → Evaluation (binary screen + pressure-test) → Summary (Rule | Lines | Verdict | Reason + total delta) → Consolidation (user-gated; Improve edits applied in-session, Demote hands off to a skill-creator, Dissolve offers an ADR)
+
+## Standard reference
+
+- [Agent Skill specification](https://agentskills.io/specification): the Claude Code skill format used by this repo
+- [SkillsMP marketplace](https://agentskills.io/specification): one-step install via `/skills add`
+
+## Sibling skills
+
+- [skill-stocktake](https://github.com/shimo4228/skill-stocktake): the same audit for skills — trigger-pollution cost model, usage measurement hook
+- [skill-health](https://github.com/shimo4228/skill-health): structural-debt scan for skill libraries (Curate's code layer)
+- [rules-distill](https://github.com/shimo4228/rules-distill): promotes cross-cutting skill patterns INTO rules — rules-stocktake audits what accumulated and demotes back what stopped earning residency
+- [skill-comply](https://github.com/shimo4228/skill-comply): measures whether rules are actually followed (dynamic); rules-stocktake stays static and never issues compliance verdicts without it
+- [akc-cycle](https://github.com/shimo4228/akc-cycle): the six-phase cycle as a single behavioral rules file — its Scaffold Dissolution section is the source of the Dissolve criteria

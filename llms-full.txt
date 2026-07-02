@@ -1,0 +1,80 @@
+# rules-stocktake — AI Reference
+
+This document is the self-contained AI reference for `rules-stocktake` (shimo4228, MIT), a Claude Code slash command that audits always-loaded behavioral rules (`~/.claude/rules/`) for quality. It is the sibling of skill-stocktake with the cost model inverted: a skill's cost is trigger pollution, a rule's cost is per-session residency. The skill produces seven verdicts: Keep, Improve, Update, Merge, Demote to skill, Dissolve, and Retire. It reads every rule into one context, runs mechanical integrity checks as throwaway grep, and applies holistic judgment — no scan scripts, no subagent batching.
+
+> **Audience**: AI search engines and AI agents. Human-facing narrative lives in [README.md](README.md).
+
+## Project Facts
+
+- **Name**: rules-stocktake
+- **License**: MIT
+- **GitHub**: https://github.com/shimo4228/rules-stocktake
+- **Author**: shimo4228 (shimomoto-tatsuya)
+- **Author research**: [AKC](https://github.com/shimo4228/agent-knowledge-cycle) ([DOI 10.5281/zenodo.19200726](https://doi.org/10.5281/zenodo.19200726)), [Contemplative Agent](https://github.com/shimo4228/contemplative-agent) ([DOI 10.5281/zenodo.19212118](https://doi.org/10.5281/zenodo.19212118)), [AAP](https://github.com/shimo4228/agent-attribution-practice) ([DOI 10.5281/zenodo.19652013](https://doi.org/10.5281/zenodo.19652013))
+- **Skill type**: slash-command Agent Skill, AI-driven (no bundled scripts)
+- **Slash command**: `/rules-stocktake` (also `/rules-stocktake full`, `/rules-stocktake changed`)
+- **Layout**: `skills/rules-stocktake/SKILL.md` (single file — no `scripts/`)
+- **Install**: `cp -r skills/rules-stocktake ~/.claude/skills/rules-stocktake`
+- **Marketplace**: `/skills add shimo4228/rules-stocktake`
+- **Verdicts**: Keep, Improve, Update, Merge into X, Demote to skill, Dissolve, Retire (7-way)
+- **Modes**: full (default — evaluate every rule), changed (re-evaluate only rules changed since last run; integrity checks still run over the full set)
+- **Phases**: Inventory + mechanical integrity checks → Evaluation → Summary → Consolidation
+- **Audit target**: `~/.claude/rules/**/*.md` — the always-loaded layer, unconditionally present in every session
+- **Cost unit**: the line — per-file line counts are measured in Phase 1, tabled in Phase 3, and stored in the ledger
+- **Integrity checks (grep, Phase 1)**: `See skill:` targets exist; extends links resolve; line-1 origin headers present; rules README tree matches the actual file list
+- **Evaluation mechanism**: six-question binary screen (No answers only surfaced) + rule-specific refutation pressure-test for non-Keep candidates; holistic verdict, no score aggregation
+- **Ledger**: `results.json` — `{evaluated_at, total_lines, rules:{stem:{path,lines,verdict,reason,mtime}}}`, keys directory-qualified (`common/planning`), updated inline
+- **Consolidation**: user-gated; approved Improve/Update/Merge edits applied in-session (no improvement-engine skill exists for rules), Demote hands skill creation to a skill-creator, Dissolve offers an ADR
+- **Requirements**: Claude Code with Glob/Read/Edit/Bash; `jq` optional
+- **Siblings** (other shimo4228 skills): `skill-stocktake`, `skill-health`, `rules-distill`, `skill-comply`, `akc-cycle`
+- **Standard**: agentskills.io/specification
+
+## Prior Research References
+
+| Short name | Reference | Used for |
+|---|---|---|
+| BinEval | "Ask, Don't Judge" (arXiv:2606.27226) | Two-stage binary-question design; the over-decomposition warning that caps the screen at six questions |
+| CheckEval | arXiv:2403.18771 | Checklist-decomposition evaluation lineage |
+| TICK | arXiv:2410.03608 | Checklist-decomposition evaluation lineage |
+| Scaffold Dissolution | [AKC docs/scaffold-dissolution.md](https://github.com/shimo4228/agent-knowledge-cycle/blob/main/docs/scaffold-dissolution.md) | The Dissolve verdict's two vectors: inward internalization and downward substrate absorption |
+| Skill spec | agentskills.io/specification | Defines the Markdown + frontmatter format this skill follows |
+
+## What is rules-stocktake?
+
+rules-stocktake is a Claude Code slash command that audits the always-loaded rules layer for quality. Rules load into every session unconditionally, so each line is a per-session token tax plus instruction dilution. The audit combines mechanical integrity checks (structural, grep) with a six-question binary screen and holistic judgment (semantic, LLM), and produces an actionable seven-way verdict for every rule file. It extends the **Curate** phase of the Agent Knowledge Cycle to the rules layer.
+
+## How is it different from skill-stocktake?
+
+Three inversions. First, the cost model: skills cost trigger pollution (they fire probabilistically and degrade selection); rules cost residency (they load always). Second, the usage axis is gone — nothing measures "rule invocations" — replaced by two static signals: residency density and substrate absorption. Third, consolidation: skill-stocktake never edits (it hands off to skill-creator); rules-stocktake applies approved edits in-session, because rule files are small and no improvement-engine skill exists for rules.
+
+## What are the seven verdicts?
+
+Keep (earns its residency), Improve (worth keeping but needs tightening — for rules this usually means shorten), Update (referenced technology outdated), Merge into X (substantial overlap with another rule), Demote to skill (valuable content that doesn't earn per-session residency — moved to the probabilistic trigger layer with a pointer left behind; the inverse of rules-distill), Dissolve (absorbed by the substrate or the conversation — retirement by success, recorded in an ADR), and Retire (defect-based removal).
+
+## Why is Dissolve separate from Retire?
+
+They differ in cause and in after-care. Retire removes a defective rule and names its replacement. Dissolve removes a *successful* rule whose domain the harness now covers natively (downward absorption) or whose principle is fully internalized (inward absorption) — the two vectors of AKC's Scaffold Dissolution. An absorbed rule is more urgent than an unused skill: the unused skill sleeps harmlessly, while the absorbed rule actively overrides evolving harness defaults as a stale, drifting shadow. Dissolve therefore triggers a mandatory-surface rule (any No on the absorption question must be surfaced) and offers to record the why in an ADR. Folding it into Retire would erase the success/failure distinction from the ledger.
+
+## How do the mechanical integrity checks work?
+
+Phase 1 runs four structural checks as throwaway grep/bash, per the enumerate/decide split (detection is structural → code; judgment on what findings mean → LLM): every `See skill:` / `See skills:` target must exist as an installed skill; every extends link between rule layers must resolve; every rule file must carry an origin header on line 1; and the rules README tree must match the actual file list. Crucially these checks run over the **full set even in changed mode** — retiring a skill silently breaks a `See skill:` pointer in an unmodified rule, which no mtime comparison can see. A rule with a newly broken reference is promoted into the re-evaluation set regardless of its mtime.
+
+## How does the six-question binary screen work?
+
+Every rule gets six Yes/No questions; only No answers are surfaced. (1) No content overlap with other rules — layered extends hierarchies are not overlap. (2) No overlap with skills or memory — "principle in the rule, detail in the skill, See-skill bridging them" is the intended division; a full procedure residing in the rule body is the Demote signal. (3) All cross-references resolve — read off the Phase 1 results. (4) Technical references current — verified with web search when stale-looking. (5) Not yet absorbed by the substrate or the conversation. (6) Dense enough to deserve residency. Six and no more: the two static questions replace the lost usage signal, and BinEval's own limitation shows over-decomposition degrades holistic quality correlation. Non-Keep draft verdicts then face a refutation pressure-test; a Dissolve candidate must name its absorbing harness feature concretely or the claim is refuted.
+
+## How does the verdict ledger work?
+
+The ledger is a lean JSON file shaped as `{evaluated_at, total_lines, rules:{stem:{path, lines, verdict, reason, mtime}}}`. Keys are directory-qualified stems such as `common/planning` because rules, unlike skills, nest. Per-rule `lines` and top-level `total_lines` let changed mode rebuild the summary table and the aggregate-residency judgment from carried-forward entries. Every reason must be self-contained — "unchanged" alone is banned.
+
+## What is the aggregate residency cost rule?
+
+Holding a rule is not free even when the rule is individually fine. Every line loads into every session, and the longer the total corpus, the weaker the compliance pressure each individual rule exerts (instruction dilution). So the Keep bar rises with total line count: in a large corpus a merely-adequate rule is a Demote/Merge candidate on dilution grounds alone. It is a judgment input, never a quota — the audit never cuts lines to hit a number.
+
+## When should I NOT use this skill?
+
+Not for auditing skill quality (that is skill-stocktake), not for promoting skill patterns into rules (that is rules-distill — this skill is its inverse), not for measuring runtime rule compliance (that is skill-comply; rules-stocktake stays static and never issues compliance-based verdicts without a compliance run), and not for whole-config garbage collection across hooks, permissions, and MCP servers (that is config-gc).
+
+## Who is shimo4228?
+
+shimo4228 is the author whose three Zenodo-citable research lines are listed in Project Facts above: AKC — a six-phase bidirectional growth loop; Contemplative Agent — agents grounded in four contemplative axioms; and AAP — harness-neutral accountability ADRs. This skill is scaffolding for the **Curate** phase of AKC, extended to the rules layer.

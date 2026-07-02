@@ -1,0 +1,12 @@
+{
+  "name": "rules-stocktake",
+  "version": "1.0.0",
+  "description": "Audit always-loaded behavioral rules for quality (Keep/Improve/Update/Merge/Demote-to-skill/Dissolve/Retire) — residency-cost model, mechanical integrity checks, holistic single-context evaluation.",
+  "author": "shimo4228",
+  "license": "MIT",
+  "skills": [
+    {
+      "path": "skills/rules-stocktake/SKILL.md"
+    }
+  ]
+}
