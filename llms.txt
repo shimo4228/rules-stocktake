@@ -15,7 +15,7 @@
 - Mandatory-surface rule: a No on the absorption question MUST surface the rule as a Dissolve candidate — an absorbed rule actively overrides evolving harness defaults, unlike an unused skill that sleeps harmlessly
 - Mechanical integrity checks always run over the full set, even in changed mode — retiring a skill silently breaks a `See skill:` pointer in an unmodified rule, invisible to mtimes
 - Lean verdict ledger: `results.json` (`{evaluated_at, total_lines, rules:{stem:{path,lines,verdict,reason,mtime}}}`), keys directory-qualified (`common/planning`)
-- 4 phases: Inventory + integrity checks → Evaluation (binary screen + pressure-test) → Summary (Rule | Lines | Verdict | Reason + total delta) → Consolidation (user-gated; Improve edits applied in-session, Demote hands off to a skill-creator, Dissolve offers an ADR)
+- 4 phases: Inventory + integrity checks → Evaluation (binary screen + pressure-test) → Summary (Rule | Lines | Verdict | Reason + total delta) → Consolidation (user-gated one candidate at a time with `[y/n/skip]`, never in bulk; Improve edits applied in-session, Demote hands off to a skill-creator, Dissolve offers an ADR)
 
 ## Standard reference
 

@@ -24,7 +24,7 @@ This document is the self-contained AI reference for `rules-stocktake` (shimo422
 - **Integrity checks (grep, Phase 1)**: `See skill:` targets exist; extends links resolve; line-1 origin headers present; rules README tree matches the actual file list
 - **Evaluation mechanism**: six-question binary screen (No answers only surfaced) + rule-specific refutation pressure-test for non-Keep candidates; holistic verdict, no score aggregation
 - **Ledger**: `results.json` — `{evaluated_at, total_lines, rules:{stem:{path,lines,verdict,reason,mtime}}}`, keys directory-qualified (`common/planning`), updated inline
-- **Consolidation**: user-gated; approved Improve/Update/Merge edits applied in-session (no improvement-engine skill exists for rules), Demote hands skill creation to a skill-creator, Dissolve offers an ADR
+- **Consolidation**: user-gated one candidate at a time — evidence first, then `[y/n/skip]`, never bulk approval; approved Improve/Update/Merge edits applied in-session (no improvement-engine skill exists for rules), Demote hands skill creation to a skill-creator, Dissolve offers an ADR
 - **Requirements**: Claude Code with Glob/Read/Edit/Bash; `jq` optional
 - **Siblings** (other shimo4228 skills): `skill-stocktake`, `skill-health`, `rules-distill`, `skill-comply`, `akc-cycle`
 - **Standard**: agentskills.io/specification

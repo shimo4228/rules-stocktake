@@ -4,7 +4,7 @@ description: Audit ~/.claude/rules (always-loaded behavioral rules) for quality 
 license: MIT
 metadata:
   author: shimo4228
-  version: "1.0"
+  version: "1.1"
 user-invocable: true
 origin: shimo4228
 ---
@@ -141,9 +141,15 @@ that delta is the input to the aggregate-residency-cost judgment next run.
 
 ## Phase 4 — Consolidation
 
-- **Improve / Update / Merge**: present the concrete edit per rule; **after the user
-  approves, apply it directly in this session** (see Design note 2 — no improvement
-  engine exists for rules, and the files are small).
+**Confirm one by one** (config-gc's confirm-each design): walk the non-Keep candidates
+sequentially — for each rule, show the evidence first, then ask `[y/n/skip]`. Never batch
+the approval ("apply all edits? [y/n]" defeats the design — one rule, one decision; this
+matters doubly here because approved edits are applied in-session). The user can stop at
+any point; `skip` records the verdict in the ledger unactioned.
+
+- **Improve / Update / Merge**: present the concrete edit per rule → ask `[y/n/skip]`;
+  **after the user approves that rule, apply it directly in this session** (see Design
+  note 2 — no improvement engine exists for rules, and the files are small).
 - **Demote to skill**: hand off skill creation to `skill-creator`; then reduce the rule
   to a 1–3 line principle + `See skill:` pointer.
 - **Dissolve / Retire**: per file, present (1) the absorption evidence or defect, (2) what

@@ -39,7 +39,7 @@ rules には usage 軸が存在しない —「rule の呼び出し回数」を�
 1. **Phase 1 — Inventory + 機械的整合性チェック**: Glob で `~/.claude/rules/**/*.md` を列挙し、全部を単一コンテキストに読み込み、ファイルごとの行数を計測。構造チェックは使い捨て grep で実行（enumerate/decide 分割）: `See skill:` 参照先の実在、extends リンクの解決、origin ヘッダの有無、rules README ツリーと実ファイル一覧の一致。
 2. **Phase 2 — Evaluation**: 2 段 binary スクリーン — Stage 1 は rule ごとの 6 問 Yes/No チェックリスト（他 rule との重複 / skill・memory との重複 / 相互参照の解決 / 参照技術の現行性 / **substrate 未吸収** / **常駐に値する密度**）。Stage 2 は non-Keep 候補に対し、draft 判定を反証する rule 固有の質問を生成する。Dissolve 候補は吸収元の harness 機能を具体的に名指しできなければ反証される。binary 回答は holistic 判定の証拠であり、スコアには集約しない。
 3. **Phase 3 — Summary**: `Rule | Lines | Verdict | Reason` テーブル。末尾に総行数と前回監査からの増減。
-4. **Phase 4 — Consolidation**: 削除・編集はすべてユーザー確認後のみ。承認された Improve/Update/Merge はセッション内で直接適用する（rule は小さく、rules 用の改善エンジン skill は存在しないため）。Demote の skill 作成は skill-creator にハンドオフ、Dissolve は理由の ADR 記録を提案する。
+4. **Phase 4 — Consolidation**: 候補は **1 件ずつ**確認する — 各候補の証拠を提示してから `[y/n/skip]` を聞く。一括承認はせず、どの時点でも中断できる。承認された Improve/Update/Merge はセッション内で直接適用する（rule は小さく、rules 用の改善エンジン skill は存在しないため）。Demote の skill 作成は skill-creator にハンドオフ、Dissolve は理由の ADR 記録を提案する。
 
 ## 判定基準
 
