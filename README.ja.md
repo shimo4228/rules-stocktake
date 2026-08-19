@@ -2,7 +2,7 @@ Language: [English](README.md) | 日本語
 
 # rules-stocktake
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shimo4228/rules-stocktake) [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/shimo4228/rules-stocktake)](https://gitmcp.io/shimo4228/rules-stocktake)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shimo4228/rules-stocktake)
 
 **常時ロードされる行動ルール**（`~/.claude/rules/`）の品質を監査する [Agent Skill](https://agentskills.io/specification)。[skill-stocktake](https://github.com/shimo4228/skill-stocktake) の姉妹スキルだが、コストモデルが反転している: skill のコストはトリガー汚染、rule のコストは**常駐** — 行動を変えるかどうかに関係なく、全行が全セッションにロードされる。
 

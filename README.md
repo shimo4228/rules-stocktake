@@ -2,7 +2,7 @@ Language: English | [日本語](README.ja.md)
 
 # rules-stocktake
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shimo4228/rules-stocktake) [![GitMCP](https://img.shields.io/endpoint?url=https://gitmcp.io/badge/shimo4228/rules-stocktake)](https://gitmcp.io/shimo4228/rules-stocktake)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/shimo4228/rules-stocktake)
 
 An [Agent Skill](https://agentskills.io/specification) that audits your **always-loaded behavioral rules** (`~/.claude/rules/`) for quality. It is the sibling of [skill-stocktake](https://github.com/shimo4228/skill-stocktake) with the cost model inverted: a skill's cost is trigger pollution, a rule's cost is **residency** — every line loads into every session, whether or not it changes behavior.
 
