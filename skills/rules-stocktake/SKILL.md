@@ -1,6 +1,6 @@
 ---
 name: rules-stocktake
-description: "Audit ~/.claude/rules (always-loaded behavioral rules) for residency cost, staleness, redundancy, broken skill pointers, and substrate absorption, assigning Keep/Improve/Update/Merge/Demote-to-skill/Dissolve/Retire verdicts. Use when the user says \"audit my rules\", \"rules stocktake\", \"which rules should be demoted or dissolved\", 「rules が肥大化してきた」「ルールを棚卸しして」, or when the model generation changed and over-constraints written for the previous one may now be net-negative (「新しいモデルに合わせて rules を見直したい」「rightsize したい」). NOT for — skill quality → skill-stocktake; promoting skill patterns INTO rules → rules-distill (this is its inverse); runtime compliance → skill-comply; whole-config GC → config-gc."
+description: "Audit ~/.claude/rules (always-loaded behavioral rules) for residency cost, staleness, redundancy, broken skill pointers, and substrate absorption, assigning Keep/Improve/Update/Merge/Demote-to-skill/Dissolve/Retire verdicts. Use when the user says \"audit my rules\", \"rules stocktake\", \"which rules should be demoted or dissolved\", \"my rules have bloated\", \"take stock of my rules\", or when the model generation changed and over-constraints written for the previous one may now be net-negative (\"I want to revisit my rules for the new model\", \"I want to rightsize them\"). NOT for — a whole-harness audit on a model-generation change → generation-audit (it hands the rules slice here); skill quality → skill-stocktake; promoting skill patterns INTO rules → rules-distill (this is its inverse); runtime compliance → skill-comply; whole-config GC → config-gc."
 license: MIT
 metadata:
   author: shimo4228
@@ -78,7 +78,7 @@ Read the body of **every** rule and evaluate them one by one while seeing the wh
 **Stage 1 — binary screen (every rule).** Answer each item as an explicit Yes/No per
 rule. Record answers internally; **surface only the No answers**:
 
-- [ ] No content overlap with other rules? (a rule that **declares** another as 正本 and
+- [ ] No content overlap with other rules? (a rule that **declares** another as canonical and
   points at it is NOT overlap — that is the intended layering. Copied prose is.)
 - [ ] No overlap with skills / MEMORY.md / CLAUDE.md? (the division "principle in the rule,
   detail in the skill, a ``skill: `name` `` pointer bridging them" is NOT overlap — a full procedure
@@ -169,7 +169,7 @@ any point; `skip` records the verdict in the ledger unactioned.
   covers the need instead (Dissolve: the named harness feature; Retire: the replacement
   rule/skill), (3) removal impact — **other rules referencing it and the public repo copy**.
   Act only after the user confirms. For Dissolve, offer to record the why via `adr-writer`
-  (akc-cycle.md 「ADR の扱い」).
+  (akc-cycle.md, "Handling ADRs").
 - **Sync README.md**: any file added/renamed/removed → update the table row and its one-line
   description (pairs with the Phase 1 consistency check).
 - **Update the ledger**: Read `results.json` → merge this run's verdicts → Write it back
@@ -218,7 +218,7 @@ not a script. Created on the first run — do not pre-seed an empty file.
 - `repo-asset-stocktake` — the same stocktake pattern for a project repo's non-code assets (configs / workflows / runbooks); rules-stocktake audits `~/.claude/rules/`.
 - `rules-distill` — promotes skill patterns *into* rules; rules-stocktake audits what accumulated and demotes back what stopped earning residency. Inverse directions over the same boundary.
 - `skill-comply` — measures whether rules are actually *followed* (dynamic). rules-stocktake stays static: never issue a compliance-based verdict without a skill-comply run; existing skill-comply results may serve as Stage 2 evidence (read, never require).
-- `generation-audit` — on a model-generation change, collects runtime-layer evidence (conflict / redundancy / drift classification against the live system prompt and tool descriptions) and hands the rules slice here as Stage 2 evidence, same read-never-require contract as skill-comply results.
+- `generation-audit` — on a model-generation change, collects runtime-layer evidence (conflict / redundancy against the live system prompt and tool descriptions) and the `/claude-api prompt-audit` dated-pattern findings, and hands the rules slice here as Stage 2 evidence, same read-never-require contract as skill-comply results.
 - `config-gc` — whole-config GC across hooks/permissions/MCP; rules-stocktake judges rule *quality*.
 - `agent-stocktake` — the same audit for `~/.claude/agents/`; rules-stocktake covers `~/.claude/rules/`.
 - `skill-health` — the mechanical dangling-reference scan across skills; its output feeds the Phase 1 integrity checks.
