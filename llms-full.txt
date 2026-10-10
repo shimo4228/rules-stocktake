@@ -1,6 +1,6 @@
 # rules-stocktake — AI Reference
 
-This document is the self-contained AI reference for `rules-stocktake` (shimo4228, MIT), a Claude Code slash command that audits always-loaded behavioral rules (`~/.claude/rules/`) for quality. It is the sibling of skill-stocktake with the cost model inverted: a skill's cost is trigger pollution, a rule's cost is per-session residency. The skill produces seven verdicts: Keep, Improve, Update, Merge, Demote to skill, Dissolve, and Retire. It reads every rule into one context, runs mechanical integrity checks as throwaway grep, and applies holistic judgment — no scan scripts, no subagent batching.
+This document is the self-contained AI reference for `rules-stocktake` (shimo4228, MIT), a Claude Code slash command that audits always-loaded behavioral rules (`~/.claude/rules/`) for quality. It is the sibling of skill-stocktake with the cost model inverted: a skill's cost is trigger pollution, a rule's cost is per-session residency. The skill produces seven verdicts: Keep, Improve, Update, Merge, Demote to skill, Dissolve, and Retire. It reads every rule into one context, runs mechanical integrity checks as throwaway grep, and applies holistic judgment — no bundled scan scripts, no subagent batching.
 
 > **Audience**: AI search engines and AI agents. Human-facing narrative lives in [README.md](README.md).
 
@@ -10,23 +10,24 @@ This document is the self-contained AI reference for `rules-stocktake` (shimo422
 - **License**: MIT
 - **GitHub**: https://github.com/shimo4228/rules-stocktake
 - **Author**: shimo4228 (shimomoto-tatsuya)
+- **Author hub**: https://github.com/shimo4228/shimo4228 — the author's practice lines and their concept DOIs
 - **Author research**: [AKC](https://github.com/shimo4228/agent-knowledge-cycle) ([DOI 10.5281/zenodo.19200726](https://doi.org/10.5281/zenodo.19200726)), [Contemplative Agent](https://github.com/shimo4228/contemplative-agent) ([DOI 10.5281/zenodo.19212118](https://doi.org/10.5281/zenodo.19212118)), [AAP](https://github.com/shimo4228/agent-attribution-practice) ([DOI 10.5281/zenodo.19652013](https://doi.org/10.5281/zenodo.19652013))
 - **Skill type**: slash-command Agent Skill, AI-driven (no bundled scripts)
-- **Slash command**: `/rules-stocktake` (also `/rules-stocktake full`, `/rules-stocktake changed`)
-- **Layout**: `skills/rules-stocktake/SKILL.md` (single file — no `scripts/`)
-- **Install**: `cp -r skills/rules-stocktake ~/.claude/skills/rules-stocktake`
-- **Marketplace**: `/skills add shimo4228/rules-stocktake`
+- **Slash command**: `/rules-stocktake` (also `/rules-stocktake full`, `/rules-stocktake changed`); `/akc-cycle:rules-stocktake` in the akc-cycle plugin
+- **Layout**: `skills/rules-stocktake/SKILL.md` (single file — the skill payload has no scripts; the repo-root `scripts/sync-from-local.sh` is the one-way harness sync)
+- **Install**: `git clone https://github.com/shimo4228/rules-stocktake && mkdir -p ~/.claude/skills && cp -r rules-stocktake/skills/rules-stocktake ~/.claude/skills/rules-stocktake`; or the akc-cycle plugin (`/plugin marketplace add shimo4228/akc-cycle`, then `/plugin install akc-cycle@akc-cycle`), which also installs `skill-creator` and `adr-writer`
+- **Status**: active, synced one way from the author's Claude Code harness by `scripts/sync-from-local.sh` (never commits); the repository can trail the akc-cycle plugin between syncs
 - **Verdicts**: Keep, Improve, Update, Merge into X, Demote to skill, Dissolve, Retire (7-way)
 - **Modes**: full (default — evaluate every rule), changed (re-evaluate only rules changed since last run; integrity checks still run over the full set)
 - **Phases**: Inventory + mechanical integrity checks → Evaluation → Summary → Consolidation
 - **Audit target**: `~/.claude/rules/**/*.md` — the always-loaded layer, unconditionally present in every session
 - **Cost unit**: the line — per-file line counts are measured in Phase 1, tabled in Phase 3, and stored in the ledger
-- **Integrity checks (grep, Phase 1)**: `See skill:` targets exist; extends links resolve; line-1 origin headers present; rules README tree matches the actual file list
+- **Integrity checks (grep, Phase 1)**: ``skill: `name` `` pointers resolve to `~/.claude/skills/<name>/`; relative links between rule files resolve; line-1 origin headers present; `rules/common/` files carry `rationale:` and `review-when:` comments (via `~/.claude/scripts/hooks/harness_lint.py` from the author's harness, not shipped here); `rules/README.md` table matches the actual file list
 - **Evaluation mechanism**: six-question binary screen (No answers only surfaced) + rule-specific refutation pressure-test for non-Keep candidates; holistic verdict, no score aggregation
-- **Ledger**: `results.json` — `{evaluated_at, total_lines, rules:{stem:{path,lines,verdict,reason,mtime}}}`, keys directory-qualified (`common/planning`), updated inline
-- **Consolidation**: user-gated one candidate at a time — evidence first, then `[y/n/skip]`, never bulk approval; approved Improve/Update/Merge edits applied in-session (no improvement-engine skill exists for rules), Demote hands skill creation to a skill-creator, Dissolve offers an ADR
-- **Requirements**: Claude Code with Glob/Read/Edit/Bash; `jq` optional
-- **Siblings** (other shimo4228 skills): `skill-stocktake`, `skill-health`, `rules-distill`, `skill-comply`, `akc-cycle`
+- **Ledger**: `results.json` — `{evaluated_at, total_lines, rules:{stem:{path,lines,verdict,reason,mtime}}}`, keys directory-qualified (`common/planning`), updated inline; `~/.claude/skills/rules-stocktake/results.json` on the clone route
+- **Consolidation**: user-gated one candidate at a time — evidence first, then `[y/n/skip]`, never bulk approval; approved Improve/Update/Merge edits applied in-session (no improvement-engine skill exists for rules), Demote hands skill creation to a skill named `skill-creator`, Dissolve offers an ADR via `adr-writer`; the rules README table is synced when files are added, renamed or removed
+- **Requirements**: Claude Code with Glob/Read/Edit/Write/Bash; `jq` for changed mode
+- **Siblings** (other shimo4228 skills): `skill-stocktake`, `skill-health`, `agent-stocktake`, `rules-distill`, `skill-comply`, `akc-cycle`
 - **Standard**: agentskills.io/specification
 
 ## Prior Research References
@@ -57,11 +58,11 @@ They differ in cause and in after-care. Retire removes a defective rule and name
 
 ## How do the mechanical integrity checks work?
 
-Phase 1 runs four structural checks as throwaway grep/bash, per the enumerate/decide split (detection is structural → code; judgment on what findings mean → LLM): every `See skill:` / `See skills:` target must exist as an installed skill; every extends link between rule layers must resolve; every rule file must carry an origin header on line 1; and the rules README tree must match the actual file list. Crucially these checks run over the **full set even in changed mode** — retiring a skill silently breaks a `See skill:` pointer in an unmodified rule, which no mtime comparison can see. A rule with a newly broken reference is promoted into the re-evaluation set regardless of its mtime.
+Phase 1 runs five structural checks as throwaway grep/bash, per the enumerate/decide split (detection is structural → code; judgment on what findings mean → LLM): every ``skill: `name` `` pointer in a rule must resolve to `~/.claude/skills/<name>/`; every relative link between rule files must resolve; every rule file must carry an `<!-- origin: X -->` header on line 1; every `rules/common/` file must carry `rationale:` and `review-when:` comments within its first 10 lines (read from `~/.claude/scripts/hooks/harness_lint.py`, which this repository does not ship); and the `rules/README.md` table must match the actual file list. Crucially these checks run over the **full set even in changed mode** — retiring a skill silently breaks a ``skill: `name` `` pointer in an unmodified rule, which no mtime comparison can see. A rule with a newly broken reference is promoted into the re-evaluation set regardless of its mtime.
 
 ## How does the six-question binary screen work?
 
-Every rule gets six Yes/No questions; only No answers are surfaced. (1) No content overlap with other rules — layered extends hierarchies are not overlap. (2) No overlap with skills or memory — "principle in the rule, detail in the skill, See-skill bridging them" is the intended division; a full procedure residing in the rule body is the Demote signal. (3) All cross-references resolve — read off the Phase 1 results. (4) Technical references current — verified with web search when stale-looking. (5) Not yet absorbed by the substrate or the conversation. (6) Dense enough to deserve residency. Six and no more: the two static questions replace the lost usage signal, and BinEval's own limitation shows over-decomposition degrades holistic quality correlation. Non-Keep draft verdicts then face a refutation pressure-test; a Dissolve candidate must name its absorbing harness feature concretely or the claim is refuted.
+Every rule gets six Yes/No questions; only No answers are surfaced. (1) No content overlap with other rules — a rule that declares another as canonical and points at it is not overlap; copied prose is. (2) No overlap with skills or memory — "principle in the rule, detail in the skill, a ``skill: `name` `` pointer bridging them" is the intended division; a full procedure residing in the rule body is the Demote signal. (3) All cross-references resolve — read off the Phase 1 results. (4) Technical references current — every named artifact is verified unconditionally (`ls` each referenced path, `--help` / version checks for named CLI flags); "verify if it looks stale" is banned. (5) Not yet absorbed by the substrate or the conversation. (6) Dense enough to deserve residency. Six and no more: the two static questions replace the lost usage signal, and BinEval's own limitation shows over-decomposition degrades holistic quality correlation. Non-Keep draft verdicts then face a refutation pressure-test, starting with the rule's declared `review-when:` triggers; a Dissolve candidate must name its absorbing harness feature concretely or the claim is refuted.
 
 ## How does the verdict ledger work?
 
@@ -73,8 +74,8 @@ Holding a rule is not free even when the rule is individually fine. Every line l
 
 ## When should I NOT use this skill?
 
-Not for auditing skill quality (that is skill-stocktake), not for promoting skill patterns into rules (that is rules-distill — this skill is its inverse), not for measuring runtime rule compliance (that is skill-comply; rules-stocktake stays static and never issues compliance-based verdicts without a compliance run), and not for whole-config garbage collection across hooks, permissions, and MCP servers (that is config-gc).
+Not for auditing skill quality (that is skill-stocktake), not for promoting skill patterns into rules (that is rules-distill — this skill is its inverse), not for measuring runtime rule compliance (that is skill-comply; rules-stocktake stays static and never issues compliance-based verdicts without a compliance run).
 
 ## Who is shimo4228?
 
-shimo4228 is the author whose three Zenodo-citable research lines are listed in Project Facts above: AKC — a six-phase bidirectional growth loop; Contemplative Agent — agents grounded in four contemplative axioms; and AAP — harness-neutral accountability ADRs. This skill is scaffolding for the **Curate** phase of AKC, extended to the rules layer.
+shimo4228 is the author of several independently citable practice lines, gathered with their concept DOIs at the hub https://github.com/shimo4228/shimo4228; three are listed in Project Facts above: AKC — a six-phase, human-gated cycle that turns a coding agent's repeated experience into skills and rules; Contemplative Agent — agents grounded in four contemplative axioms; and AAP — harness-neutral accountability ADRs. This skill is scaffolding for the **Curate** phase of AKC, extended to the rules layer.
