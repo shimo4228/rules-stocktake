@@ -11,7 +11,7 @@ origin: shimo4228
 
 # rules-stocktake — Rules Quality Audit
 
-Evaluate every rule file under `~/.claude/rules/` **holistically, all in one context**,
+Evaluate every rule file under `<harness>/rules/` **holistically, all in one context**,
 and assign each a verdict: `Keep / Improve / Update / Merge / Demote to skill /
 Dissolve / Retire`. The audit unit is the file; the cost unit is the **line** — rules
 load into every session unconditionally, so each line is a per-session token tax plus
@@ -31,6 +31,8 @@ instruction dilution.
 > would be overengineering. The handoff exception is Demote (creating a new skill is
 > skill-creator's job).
 
+**Roots.** `<harness>` below is the harness this audit covers: `~/.claude` by default, or a repository's `.claude/` when skill `harness-stocktake` runs in project mode (its Roots section maps the paths and names the evidence that is `n/a` there).
+
 ## Modes (`$ARGUMENTS`)
 
 | Argument | Behavior |
@@ -42,7 +44,7 @@ instruction dilution.
 > Paths below start at `${CLAUDE_SKILL_DIR}`, the directory holding this SKILL.md; an agent that does not substitute the variable reads it as that directory.
 
 ```bash
-find ~/.claude/rules -name "*.md" -newermt "$(jq -r .evaluated_at "${CLAUDE_SKILL_DIR}/results.json")"
+find <harness>/rules -name "*.md" -newermt "$(jq -r .evaluated_at "${CLAUDE_SKILL_DIR}/results.json")"
 ```
 
 **The Phase 1 integrity checks always run over the full set, including in `changed`
@@ -53,16 +55,16 @@ re-evaluation set even if its mtime is old.
 
 ## Phase 1 — Inventory + mechanical integrity checks
 
-Enumerate with Glob (no script): `~/.claude/rules/**/*.md`. The corpus is small enough
+Enumerate with Glob (no script): `<harness>/rules/**/*.md`. The corpus is small enough
 to read every file into one context — no batching, no grep pre-filter. Measure the
-corpus size live (`find ~/.claude/rules -name '*.md' | xargs wc -l`) rather than
+corpus size live (`find <harness>/rules -name '*.md' | xargs wc -l`) rather than
 trusting a figure written here; per-file line counts become the residency-cost column
 in Phase 3 and the `lines` field in the ledger.
 
 Run the mechanical checks with throwaway bash/grep (detection is structural → code;
 judgment on what the findings mean → LLM, per the enumerate/decide split):
 
-- [ ] Every ``skill: `name` `` pointer in a rule resolves to `~/.claude/skills/<name>/`
+- [ ] Every ``skill: `name` `` pointer in a rule resolves to `<harness>/skills/<name>/`
 - [ ] Every relative link between rule files resolves
 - [ ] Every rule file's line 1 carries `<!-- origin: X -->`
 - [ ] Every `rules/common/` file carries `<!-- rationale: ... -->` and
@@ -102,8 +104,12 @@ rule. Record answers internally; **surface only the No answers**:
 - [ ] Dense enough to deserve residency? (does each section change behavior often enough
   to justify being read every session? rarely-needed reference material, long procedures,
   single-project content → Demote or Improve-by-shortening candidate)
+- [ ] Written in the affirmative? (each prohibition targets a grep-able concrete action, the
+  default behavior was observed to go the other way, no machine gate covers it, and a
+  one-clause reason is attached — any other "don't", especially on style or internal process,
+  is an Improve candidate: reword it as the default to follow)
 
-Six questions and no more — the two static questions (absorption, density) replace the
+Seven questions and no more — the two static questions (absorption, density) replace the
 lost usage signal; further decomposition degrades holistic judgment.
 
 **Stage 2 — verdict pressure-test (non-Keep candidates only).** When Stage 1 plus the
@@ -160,29 +166,38 @@ Render a table: `Rule | Lines | Verdict | Reason`. Close with one line reporting
 total line count and its delta since the previous audit (`total_lines` in the ledger) —
 that delta is the input to the aggregate-residency-cost judgment next run.
 
-## Phase 4 — Consolidation
+## Phase 4 — Report and apply
 
-**Confirm one by one**: walk the non-Keep candidates
-sequentially — for each rule, show the evidence first, then ask `[y/n/skip]`. Never batch
-the approval ("apply all edits? [y/n]" defeats the design — one rule, one decision; this
-matters doubly here because approved edits are applied in-session). The user can stop at
-any point; `skip` records the verdict in the ledger unactioned.
+Turn every verdict into items (source `rules`) of the report contract in skill:
+`harness-stocktake` and hand them to it: one report, one approval from the author, application
+on a task branch, a completion report, an ff-only merge. Called alone, this skill runs that
+contract's Phases 2–5 with its own items. Because rules load every session, each non-Keep item
+shows the exact edit, not a summary. Each item carries, by verdict:
 
-- **Improve / Update / Merge**: present the concrete edit per rule → ask `[y/n/skip]`;
-  **after the user approves that rule, apply it directly in this session** (Design note 2). If an
-  applied edit changes the rule's reason-to-exist or expiry conditions, refresh its
-  `rationale:` / `review-when:` comments in the same diff.
-- **Demote to skill**: hand off skill creation to `skill-creator`; then reduce the rule
-  to a 1–3 line principle + a ``skill: `name` `` pointer.
-- **Dissolve / Retire**: per file, present (1) the absorption evidence or defect, (2) what
-  covers the need instead (Dissolve: the named harness feature; Retire: the replacement
-  rule/skill), (3) removal impact — **other rules referencing it and the public repo copy**.
-  Act only after the user confirms. For Dissolve, offer to record the why via `adr-writer`.
+- **Improve / Update / Merge**: `change` = the concrete edit as a diff. Application edits the rule
+  directly on the branch (Design note 2). If the edit changes the rule's reason-to-exist or expiry
+  conditions, the same diff refreshes its `rationale:` / `review-when:` comments
+- **Demote to skill**: `change` = the 1–3 line principle + ``skill: `name` `` pointer that stays,
+  and the skill-creator intent packet for what moves. Application creates the skill through
+  skill-creator's report path
+- **Dissolve / Retire**: `reason` = the absorption evidence or defect and what covers the need
+  instead (Dissolve: the named harness feature; Retire: the replacement rule/skill); `impact` =
+  other rules referencing it and the public repo copy. Application records a Dissolve's why via
+  `adr-writer`
+- **Keep**: `reason` only
+
+Where skill `harness-stocktake` is not installed, show the same items as one table ordered
+Dissolve / Retire → Merge / Demote → Improve / Update → Keep, take one approval with the author's
+overrides, then apply.
+
+On the apply branch, in the same commit as the changes:
+
 - **Sync README.md**: any file added/renamed/removed → update the table row and its one-line
   description (pairs with the Phase 1 consistency check).
-- **Update the ledger**: Read `results.json` → merge this run's verdicts → Write it back
-  (`evaluated_at` = real UTC from `date -u +%Y-%m-%dT%H:%M:%SZ`). In `changed` mode,
-  preserve prior verdicts of rules not re-evaluated.
+- **Update the ledger**: Read `results.json` → merge this run's verdicts (an item the author
+  skipped keeps its verdict with `"skipped": true`) → Write it back (`evaluated_at` = real UTC
+  from `date -u +%Y-%m-%dT%H:%M:%SZ`). In `changed` mode, preserve prior verdicts of rules not
+  re-evaluated.
 - **Public-repo note**: retiring or editing an `origin: shimo4228` rule leaves the public
   repo stale — point the user at their publish step (the author's harness uses `harness-sync`) for the follow-up.
 
@@ -193,7 +208,7 @@ alone is banned. For non-Keep verdicts, cite the No answers (question + one-line
 
 - **Demote**: name what stays and what moves. Bad: `"Too detailed"` / Good: `"109 lines of pytest fixture recipes; only the 80%-coverage principle changes per-session behavior. Keep 3 lines + pointer, move recipes to the language-specific skill."`
 - **Dissolve**: name the absorber. Bad: `"Not needed anymore"` / Good: `"Harness plan mode now enforces the plan-file workflow natively (system prompt §Plan Workflow); the rule's manual checklist duplicates and predates it. ADR the why, then delete."`
-- **Merge**: name the target + what to integrate. Bad: `"Overlaps"` / Good: `"§Retry duplicates debugging.md's Retry with Context; only the backoff constants are unique — fold them into debugging.md L40."`
+- **Merge**: name the target + what to integrate. Bad: `"Overlaps"` / Good: `"§Commit gate duplicates security.md's repo gate line; only the bypass note is unique — fold it into security.md's repo gate line."`
 - **Keep** (carry-forward in `changed` mode): restate the rationale. Bad: `"Unchanged"` / Good: `"Content unchanged. 42-line fix-chain gate referenced by planning.md's 2-intervention model; no absorber in current harness."`
 
 ## results.json (lean ledger)
@@ -214,7 +229,7 @@ alone is banned. For non-Keep verdicts, cite the No answers (question + one-line
 }
 ```
 
-Keys are directory-qualified stems (`common/planning`, `common/debugging`) so the schema
+Keys are directory-qualified stems (`common/planning`, `common/boundary`) so the schema
 survives nesting.
 `lines` / `total_lines` let `changed` mode rebuild the Phase 3 table
 and the aggregate judgment from carried-forward entries. Update inline with Read/Write,
